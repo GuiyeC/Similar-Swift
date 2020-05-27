@@ -1,0 +1,109 @@
+//
+//  DecodeTask.swift
+//  Similar
+//
+//  Created by Guillermo Cique on 10/02/2020.
+//
+
+import Foundation
+
+public extension Task where Output == Data {
+    @discardableResult
+    func decode<NewOutput: Decodable>(_: NewOutput.Type, decoder: JSONDecoder = Similar.defaultDecoder) -> Task<NewOutput> {
+        return wrap(sinkBlock: { (data, task) in
+            do {
+                let decodedResult = try decoder.decode(NewOutput.self, from: data)
+                task.complete(decodedResult)
+            } catch {
+                Swift.print("Error:", error)
+                task.fail(.decodingError(error))
+            }
+        })
+    }
+}
+
+public extension Task {
+    @discardableResult
+    func catchDecode<Error: Decodable>(_: Error.Type, decoder: JSONDecoder = Similar.defaultDecoder, _ block: @escaping ((Int, Error) -> Void)) -> Task<Output> {
+        return self.catch { error in
+            guard case .serverError(let code, let data) = error, let errorData = data,
+                let decodedError = try? decoder.decode(Error.self, from: errorData) else {
+                return
+            }
+            block(code, decodedError)
+        }
+    }
+}
+
+public extension Task {
+    @discardableResult
+    func `guard`(_ guardBlock: @escaping (Output) -> Bool, throw errorBlock: @escaping (Output) -> Error) -> Task<Output> {
+        return wrap(sinkBlock: { (data, task) in
+            if guardBlock(data) {
+                task.complete(data)
+            } else {
+                let error = errorBlock(data)
+                if let error = error as? RequestError {
+                    task.fail(error)
+                } else {
+                    task.fail(.localError(error))
+                }
+            }
+        })
+    }
+
+    @discardableResult
+    func `guard`(_ guardBlock: @escaping (Output) -> Bool, throw error: Error) -> Task<Output> {
+        return `guard`(guardBlock, throw: { _ in error })
+    }
+}
+
+public extension Task {
+    @discardableResult
+    func assign<Root: AnyObject>(to keyPath: ReferenceWritableKeyPath<Root, Output>, on object: Root) -> Task<Output> {
+        return sink { [weak object] data in
+            object?[keyPath: keyPath] = data
+        }
+    }
+}
+
+public extension Task {
+    @discardableResult
+    func then<NewOutput>(_ taskBlock: @escaping (Output) -> Task<NewOutput>) -> Task<NewOutput> {
+        return wrap(sinkBlock: { (data, task) in
+            let newTask = taskBlock(data)
+                .sink(task.complete)
+                .catch(task.fail)
+            let oldCancelBlock = newTask.cancelBlock
+            newTask.cancelBlock = {
+                oldCancelBlock?()
+                task.cancel()
+            }
+        })
+    }
+}
+
+public extension Task {
+    @discardableResult
+    func print() -> Task<Output> {
+        sink { Swift.print(String(describing: $0)) }
+        `catch`{ Swift.print(String(describing: $0)) }
+        return self
+    }
+}
+
+public extension Task {
+    @discardableResult
+    func map<NewOutput>(_ block: @escaping (Output) -> NewOutput) -> Task<NewOutput> {
+        return wrap(sinkBlock: { (data, task) in
+            let newData = block(data)
+            task.complete(newData)
+        })
+    }
+}
+
+public extension Task {
+    func eraseType() -> Task<Void> {
+        return wrap(sinkBlock: { $1.complete(()) })
+    }
+}
