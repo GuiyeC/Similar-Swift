@@ -7,10 +7,14 @@
 
 import Foundation
 
-class NetworkDispatcher: Dispatcher {
-    let session: URLSession = URLSession(configuration: .default)
+public class NetworkDispatcher: Dispatcher {
+    let session: URLSession
     
-    func execute(_ request: Request) -> Task<Data> {
+    public init(session: URLSession = URLSession(configuration: .default)) {
+        self.session = session
+    }
+    
+    public func execute(_ request: Request) -> Task<Data> {
         let url: URL?
         if let parameters = request.parameters, var urlComponents = URLComponents(string: request.path) {
             urlComponents.queryItems = parameters.map { URLQueryItem(name: $0, value: String(describing: $1)) }

@@ -11,7 +11,7 @@ public protocol Dispatcher: class {
     func execute(_ request: Request) -> Task<Data>
 }
 
-extension Task {
+public extension Task {
     func then(dispatcher: Dispatcher, _ requestBlock: @escaping (Output) -> Request) -> Task<Data> {
         return then { output in
             let request = requestBlock(output)
