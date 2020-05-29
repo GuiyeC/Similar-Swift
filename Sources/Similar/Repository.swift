@@ -7,7 +7,7 @@
 
 import Foundation
 
-class Repository<Output> {
+public class Repository<Output> {
     let request: Request
     weak var dispatcher: Dispatcher!
     var data: Output? {
@@ -20,19 +20,19 @@ class Repository<Output> {
     var currentTasks: [Task<Output>] = []
     private let transformBlock: ((Data) throws -> Output)
     
-    init(_ path: String, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
+    public init(_ path: String, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
         self.request = Request(path)
         self.dispatcher = dispatcher
         self.transformBlock = transformBlock
     }
     
-    init(_ request: Request, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
+    public init(_ request: Request, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
         self.request = request
         self.dispatcher = dispatcher
         self.transformBlock = transformBlock
     }
     
-    func fetch(forceUpdate: Bool = false) -> Task<Output> {
+    public func fetch(forceUpdate: Bool = false) -> Task<Output> {
         if forceUpdate {
             data = nil
         }
@@ -77,7 +77,7 @@ class Repository<Output> {
     }
 }
 
-extension Repository where Output: Decodable {
+public extension Repository where Output: Decodable {
     convenience init(_ path: String,
                      decoder: JSONDecoder = Similar.defaultDecoder,
                      dispatcher: Dispatcher) {
@@ -93,17 +93,24 @@ extension Repository where Output: Decodable {
     }
 }
 
-extension Repository {
+public extension Repository: Sinkable {
     func map<NewOutput>(_ mapBlock: @escaping (Output) -> NewOutput) -> Repository<NewOutput> {
         return Repository<NewOutput>(request, dispatcher: dispatcher) { [transformBlock] data -> NewOutput in
             return mapBlock(try transformBlock(data))
         }
     }
     
-    func sink(_ sinkBlock: @escaping (Output) -> Void) -> Repository<Output> {
+    @discardableResult
+    func sink(queue: DispatchQueue?, _ block: @escaping ((Output) -> Void)) -> Self {
+        var newBlock: ((Output) -> Void)
+        if let queue = queue {
+            newBlock = { output in queue.async { block(output) } }
+        } else {
+            newBlock = block
+        }
         return Repository<Output>(request, dispatcher: dispatcher) { [transformBlock] data -> Output in
             let output = try transformBlock(data)
-            sinkBlock(output)
+            newBlock(output)
             return output
         }
     }
