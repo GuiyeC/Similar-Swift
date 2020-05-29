@@ -24,7 +24,7 @@ public extension Task where Output == Data {
 
 public extension Task {
     @discardableResult
-    func catchDecode<Error: Decodable>(_: Error.Type, decoder: JSONDecoder = Similar.defaultDecoder, _ block: @escaping ((Int, Error) -> Void)) -> Task<Output> {
+    func `catch`<Error: Decodable>(_: Error.Type, decoder: JSONDecoder = Similar.defaultDecoder, _ block: @escaping ((Int, Error) -> Void)) -> Task<Output> {
         return self.catch { error in
             guard case .serverError(let code, let data) = error, let errorData = data,
                 let decodedError = try? decoder.decode(Error.self, from: errorData) else {
@@ -55,15 +55,6 @@ public extension Task {
     @discardableResult
     func `guard`(_ guardBlock: @escaping (Output) -> Bool, throw error: Error) -> Task<Output> {
         return `guard`(guardBlock, throw: { _ in error })
-    }
-}
-
-public extension Task {
-    @discardableResult
-    func assign<Root: AnyObject>(to keyPath: ReferenceWritableKeyPath<Root, Output>, on object: Root) -> Task<Output> {
-        return sink { [weak object] data in
-            object?[keyPath: keyPath] = data
-        }
     }
 }
 

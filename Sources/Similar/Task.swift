@@ -7,16 +7,6 @@
 
 import Foundation
 
-public protocol Sinkable {
-    associatedtype Output
-    func sink(_ block: @escaping ((Output) -> Void)) -> Self
-}
-
-public protocol Catchable {
-    @discardableResult
-    func `catch`(_ block: @escaping ((RequestError) -> Void)) -> Self
-}
-
 public protocol Cancellable {
     func cancel()
 }
@@ -82,9 +72,6 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     }
     
     @discardableResult
-    public func sink(_ block: @escaping ((Output) -> Void)) -> Self { self.sink(queue: nil, block) }
-    
-    @discardableResult
     public func sink(queue: DispatchQueue?, _ block: @escaping ((Output) -> Void)) -> Self {
         let previousCompletionBlock = completionBlock
         var newBlock: ((Output) -> Void)
@@ -99,9 +86,6 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         }
         return self
     }
-    
-    @discardableResult
-    public func `catch`(_ block: @escaping ((RequestError) -> Void)) -> Self { self.catch(queue: nil, block) }
     
     @discardableResult
     public func `catch`(queue: DispatchQueue?, _ block: @escaping ((RequestError) -> Void)) -> Self {
