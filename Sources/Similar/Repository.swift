@@ -10,12 +10,12 @@ import Foundation
 open class Repository<Output>: Sinkable {
     let request: Request
     weak var dispatcher: Dispatcher!
-    var data: Output? {
+    public var data: Output? {
         didSet {
             updatedDate = data == nil ? nil : Date()
         }
     }
-    var updatedDate: Date?
+    public internal(set) var updatedDate: Date?
     var updateTask: Task<Data>?
     var currentTasks: [Task<Output>] = []
     private var transformBlock: ((Data) throws -> Output)
