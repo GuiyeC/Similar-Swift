@@ -74,15 +74,24 @@ fileprivate extension URLRequest {
         case .json(let jsonData, let encoder):
             setValue("application/json", forHTTPHeaderField: "Content-Type")
             httpBody = try jsonData.encode(encoder)
-        case .multipart(let name, let mimeType, let fileName, let fileData):
+        case .multipart(let parts):
             let boundary = "Boundary-\(UUID().uuidString)"
             setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
             let multipartData = NSMutableData()
-            multipartData.appendString("--\(boundary)\r\n")
-            multipartData.appendString("Content-Disposition: form-data; name=\"\(name)\"; filename=\"\(fileName)\"\r\n")
-            multipartData.appendString("Content-Type: \(mimeType)\r\n\r\n")
-            multipartData.append(fileData)
-            multipartData.appendString("\r\n")
+            for part in parts {
+                multipartData.appendString("--\(boundary)\r\n")
+                multipartData.appendString("Content-Disposition: form-data; name=\"\(part.name)\"")
+                if let fileName = part.fileName {
+                    multipartData.appendString("; filename=\"\(fileName)\"")
+                }
+                multipartData.appendString("\r\n")
+                if let mimeType = part.mimeType {
+                    multipartData.appendString("Content-Type: \(mimeType)\r\n")
+                }
+                multipartData.appendString("\r\n")
+                multipartData.append(part.data)
+                multipartData.appendString("\r\n")
+            }
             httpBody = multipartData as Data
         case .none:
             httpBody = nil

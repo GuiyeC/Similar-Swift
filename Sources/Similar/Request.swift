@@ -11,7 +11,21 @@ public struct Request {
     public enum Data {
         case data(Foundation.Data)
         case json(Encodable, encoder: JSONEncoder = Similar.defaultEncoder)
-        case multipart(name: String, mimeType: String, fileName: String, fileData: Foundation.Data)
+        case multipart([DataPart])
+    }
+
+    public struct DataPart {
+        let name: String
+        let mimeType: String?
+        let fileName: String?
+        let data: Foundation.Data
+        
+        public init(name: String, mimeType: String, fileName: String, data: Foundation.Data) {
+            self.name = name
+            self.mimeType = mimeType
+            self.fileName = fileName
+            self.data = data
+        }
     }
     
     public init(_ path: String,
