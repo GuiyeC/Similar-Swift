@@ -92,6 +92,7 @@ fileprivate extension URLRequest {
                 multipartData.append(part.data)
                 multipartData.appendString("\r\n")
             }
+            multipartData.appendString("--\(boundary)\r\n")
             httpBody = multipartData as Data
         case .none:
             httpBody = nil
