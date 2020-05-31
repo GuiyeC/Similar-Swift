@@ -20,11 +20,25 @@ public struct Request {
         let fileName: String?
         let data: Foundation.Data
         
-        public init(name: String, mimeType: String, fileName: String, data: Foundation.Data) {
+        public init(name: String,
+                    mimeType: String? = nil,
+                    fileName: String? = nil,
+                    data: Foundation.Data) {
             self.name = name
             self.mimeType = mimeType
             self.fileName = fileName
             self.data = data
+        }
+        
+        public init(name: String,
+                    mimeType: String? = nil,
+                    fileName: String? = nil,
+                    data: String,
+                    encoding: String.Encoding = .utf8) {
+            self.name = name
+            self.mimeType = mimeType
+            self.fileName = fileName
+            self.data = data.data(using: .utf8)!
         }
     }
     
