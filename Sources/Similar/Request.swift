@@ -33,14 +33,14 @@ public struct Request {
                 expectedCode: Range<Int> = (200..<300),
                 headers: [String: String]? = nil,
                 parameters: [String: AnyHashable]? = nil,
-                data: Encodable,
+                data: Encodable?,
                 encoder: JSONEncoder = Similar.defaultEncoder) {
         self.path = path
         self.method = method
         self.expectedCode = expectedCode
         self.headers = headers
         self.parameters = parameters
-        self.data = .json(data, encoder: encoder)
+        self.data = data.map { .json($0, encoder: encoder) }
     }
     
     public var path: String
