@@ -28,6 +28,21 @@ public struct Request {
         self.data = data
     }
     
+    public init(_ path: String,
+                method: HttpMethod = .get,
+                expectedCode: Range<Int> = (200..<300),
+                headers: [String: String]? = nil,
+                parameters: [String: AnyHashable]? = nil,
+                data: Encodable,
+                encoder: JSONEncoder = Similar.defaultEncoder) {
+        self.path = path
+        self.method = method
+        self.expectedCode = expectedCode
+        self.headers = headers
+        self.parameters = parameters
+        self.data = .json(data, encoder: encoder)
+    }
+    
     public var path: String
     public var method: HttpMethod
     public var expectedCode: Range<Int>

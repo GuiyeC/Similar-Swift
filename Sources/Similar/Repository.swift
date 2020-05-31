@@ -7,7 +7,7 @@
 
 import Foundation
 
-public class Repository<Output>: Sinkable {
+open class Repository<Output>: Sinkable {
     let request: Request
     weak var dispatcher: Dispatcher!
     var data: Output? {

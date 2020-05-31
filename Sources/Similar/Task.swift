@@ -13,7 +13,7 @@ public protocol Cancellable {
 
 public class Task<Output>: Sinkable, Catchable, Cancellable {
     public private(set) var isCancelled: Bool = false
-    var cancelBlock: (() -> Void)?
+    public var cancelBlock: (() -> Void)?
     var alwaysBlock: (() -> Void)? {
         didSet {
             guard !isCancelled, output != nil || error != nil else { return }
@@ -53,21 +53,21 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         }
     }
     
-    init() {}
+    public init() {}
     
-    init(output: Output) {
+    public init(output: Output) {
         complete(output)
     }
     
-    init(error: RequestError) {
+    public init(error: RequestError) {
         fail(error)
     }
     
-    func complete(_ output: Output) {
+    public func complete(_ output: Output) {
         self.output = output
     }
     
-    func fail(_ error: RequestError) {
+    public func fail(_ error: RequestError) {
         self.error = error
     }
     
