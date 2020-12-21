@@ -8,11 +8,11 @@
 import Foundation
 
 public protocol Dispatcher: class {
-    func execute(_ request: Request) -> Task<Data>
+    func execute(_ request: Request) -> Task<Response>
 }
 
 public extension Task {
-    func then(dispatcher: Dispatcher, _ requestBlock: @escaping (Output) -> Request) -> Task<Data> {
+    func then(dispatcher: Dispatcher, _ requestBlock: @escaping (Output) -> Request) -> Task<Response> {
         return then { output in
             let request = requestBlock(output)
             return dispatcher.execute(request)

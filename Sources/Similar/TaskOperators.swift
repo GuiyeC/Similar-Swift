@@ -7,12 +7,12 @@
 
 import Foundation
 
-public extension Task where Output == Data {
+public extension Task where Output == Response {
     @discardableResult
     func decode<NewOutput: Decodable>(_: NewOutput.Type, decoder: JSONDecoder = Similar.defaultDecoder) -> Task<NewOutput> {
-        return wrap(sinkBlock: { (data, task) in
+        return wrap(sinkBlock: { (response, task) in
             do {
-                let decodedResult = try decoder.decode(NewOutput.self, from: data)
+                let decodedResult = try decoder.decode(NewOutput.self, from: response.data)
                 task.complete(decodedResult)
             } catch {
                 Swift.print("Error:", error)

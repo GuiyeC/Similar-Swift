@@ -14,7 +14,7 @@ open class NetworkDispatcher: Dispatcher {
         self.session = session
     }
     
-    open func execute(_ request: Request) -> Task<Data> {
+    open func execute(_ request: Request) -> Task<Response> {
         let url: URL?
         if let parameters = request.parameters, var urlComponents = URLComponents(string: request.path) {
             urlComponents.queryItems = parameters.map { URLQueryItem(name: $0, value: String(describing: $1)) }
@@ -30,7 +30,7 @@ open class NetworkDispatcher: Dispatcher {
         var requestHeaders = request.headers ?? [:]
         requestHeaders["Accept"] = "application/json"
         urlRequest.allHTTPHeaderFields = requestHeaders
-        let task = Task<Data>()
+        let task = Task<Response>()
         do {
             try urlRequest.setData(request.data)
         } catch {
@@ -58,7 +58,7 @@ open class NetworkDispatcher: Dispatcher {
                 task.fail(.noData)
                 return
             }
-            task.complete(data)
+            task.complete(Response(data: data, response: response))
         }
         task.cancelBlock = dataTask.cancel
         dataTask.resume()

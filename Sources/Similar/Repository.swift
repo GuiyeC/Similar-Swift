@@ -16,7 +16,7 @@ open class Repository<Output>: Sinkable {
         }
     }
     public internal(set) var updatedDate: Date?
-    var updateTask: Task<Data>?
+    var updateTask: Task<Response>?
     var currentTasks: [Task<Output>] = []
     private var transformBlock: ((Data) throws -> Output)
     
@@ -53,14 +53,14 @@ open class Repository<Output>: Sinkable {
     func updateIfNecessary() {
         guard updateTask == nil else { return }
         updateTask = dispatcher.execute(request)
-            .sink(handleData)
+            .sink(handleResponse)
             .catch(handleError)
             .always { self.updateTask = nil }
     }
     
-    func handleData(_ data: Data) {
+    func handleResponse(_ response: Response) {
         do {
-            let parsedData = try transformBlock(data)
+            let parsedData = try transformBlock(response.data)
             self.data = parsedData
             let currentTasks = self.currentTasks
             self.currentTasks.removeAll()
