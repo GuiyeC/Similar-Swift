@@ -37,12 +37,8 @@ open class NetworkDispatcher: Dispatcher {
             task.fail(.localError(error))
             return task
         }
-        print("Url:", validUrl)
-        print(requestHeaders)
         let dataTask = session.dataTask(with: urlRequest) { (data, response, error) in
-            data.map { data in String(data: data, encoding: .utf8).map { print("Data:", $0) } }
             if let error = error {
-                print("Error:", error)
                 task.fail(.localError(error))
                 return
             }
@@ -68,21 +64,36 @@ open class NetworkDispatcher: Dispatcher {
 
 fileprivate extension URLRequest {
     mutating func setData(_ data: Request.Data?) throws {
+        httpBody = try data?.rawData()
         switch data {
-        case .data(let data):
-            httpBody = data
-        case .json(let jsonData, let encoder):
+        case .data:
+            break
+        case .json:
             setValue("application/json", forHTTPHeaderField: "Content-Type")
-            httpBody = try jsonData.encode(encoder)
-        case .multipart(let parts):
+        case .multipart:
             let boundary = "Boundary-\(UUID().uuidString)"
             setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        case .none:
+            break
+        }
+    }
+}
+
+extension Request.Data {
+    func rawData() throws -> Data {
+        switch self {
+        case .data(let data):
+            return data
+        case .json(let jsonData, let encoder):
+            return try jsonData.encode(encoder)
+        case .multipart(let parts):
+            let boundary = "Boundary-\(UUID().uuidString)"
             let multipartData = NSMutableData()
             for part in parts {
                 multipartData.appendString("--\(boundary)\r\n")
                 multipartData.appendString("Content-Disposition: form-data; name=\"\(part.name)\"")
-                if let fileName = part.fileName {
-                    multipartData.appendString("; filename=\"\(fileName)\"")
+                if let filename = part.filename {
+                    multipartData.appendString("; filename=\"\(filename)\"")
                 }
                 multipartData.appendString("\r\n")
                 if let mimeType = part.mimeType {
@@ -93,9 +104,7 @@ fileprivate extension URLRequest {
                 multipartData.appendString("\r\n")
             }
             multipartData.appendString("--\(boundary)\r\n")
-            httpBody = multipartData as Data
-        case .none:
-            httpBody = nil
+            return multipartData as Data
         }
     }
 }

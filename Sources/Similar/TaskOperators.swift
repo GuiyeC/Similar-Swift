@@ -15,7 +15,6 @@ public extension Task where Output == Response {
                 let decodedResult = try decoder.decode(NewOutput.self, from: response.data)
                 task.complete(decodedResult)
             } catch {
-                Swift.print("Error:", error)
                 task.fail(.decodingError(error))
             }
         })

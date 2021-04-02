@@ -78,3 +78,37 @@ public struct Request {
     public var parameters: [String: AnyHashable]?
     public var data: Data?
 }
+
+extension Request: CustomStringConvertible {
+    public var description: String {
+        var description = "\(method.rawValue) '\(path)'"
+        if let parameters = parameters {
+            description.append("\nParameters: [")
+            parameters.forEach { description.append("  \($0.key): \($0.value)") }
+            description.append("]")
+        }
+        if let headers = headers {
+            description.append("\nHeaders: [")
+            headers.forEach { description.append("  \($0.key): \($0.value)") }
+            description.append("]")
+        }
+        switch data {
+        case .data(let data):
+            description.append("\nRaw data: \(String(data: data, encoding: .utf8) ?? String(describing: data))")
+        case .json:
+            do {
+                let encodedData = try data!.rawData()
+                let formattedJson = try JSONSerialization.jsonObject(with: encodedData)
+                description.append("\nJSON Data: \(String(describing: formattedJson))")
+            } catch {
+                description.append("\nJSON Data: Unencodable data")
+            }
+        case .multipart(let parts):
+            description.append("\nMultipart: [")
+            parts.forEach { description.append("  \(String(describing: $0))") }
+            description.append("]")
+        case .none: break
+        }
+        return description
+    }
+}
