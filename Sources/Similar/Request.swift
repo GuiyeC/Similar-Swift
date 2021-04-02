@@ -84,13 +84,13 @@ extension Request: CustomStringConvertible {
         var description = "\(method.rawValue) '\(path)'"
         if let parameters = parameters {
             description.append("\nParameters: [")
-            parameters.forEach { description.append("  \($0.key): \($0.value)") }
-            description.append("]")
+            parameters.forEach { description.append("\n  \($0.key): \($0.value)") }
+            description.append("\n]")
         }
         if let headers = headers {
             description.append("\nHeaders: [")
-            headers.forEach { description.append("  \($0.key): \($0.value)") }
-            description.append("]")
+            headers.forEach { description.append("\n  \($0.key): \($0.value)") }
+            description.append("\n]")
         }
         switch data {
         case .data(let data):
@@ -105,8 +105,8 @@ extension Request: CustomStringConvertible {
             }
         case .multipart(let parts):
             description.append("\nMultipart: [")
-            parts.forEach { description.append("  \(String(describing: $0))") }
-            description.append("]")
+            parts.forEach { description.append("\n  \(String(describing: $0))") }
+            description.append("\n]")
         case .none: break
         }
         return description
