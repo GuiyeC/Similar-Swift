@@ -16,27 +16,27 @@ public struct Request {
 
     public struct DataPart {
         let name: String
-        let fileName: String?
+        let filename: String?
         let mimeType: String?
         let data: Foundation.Data
         
         public init(name: String,
-                    fileName: String? = nil,
+                    filename: String? = nil,
                     mimeType: String? = nil,
                     data: Foundation.Data) {
             self.name = name
-            self.fileName = fileName
+            self.filename = filename
             self.mimeType = mimeType
             self.data = data
         }
         
         public init(name: String,
-                    fileName: String? = nil,
+                    filename: String? = nil,
                     mimeType: String? = nil,
                     data: String,
                     encoding: String.Encoding = .utf8) {
             self.name = name
-            self.fileName = fileName
+            self.filename = filename
             self.mimeType = mimeType
             self.data = data.data(using: .utf8)!
         }
