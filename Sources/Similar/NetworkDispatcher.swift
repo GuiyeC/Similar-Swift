@@ -70,8 +70,8 @@ fileprivate extension URLRequest {
             break
         case .json:
             setValue("application/json", forHTTPHeaderField: "Content-Type")
-        case .multipart:
-            let boundary = "Boundary-\(UUID().uuidString)"
+        case .multipart(_, let boundaryId):
+            let boundary = "Boundary-\(boundaryId)"
             setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         case .none:
             break
@@ -86,8 +86,8 @@ extension Request.Data {
             return data
         case .json(let jsonData, let encoder):
             return try jsonData.encode(encoder)
-        case .multipart(let parts):
-            let boundary = "Boundary-\(UUID().uuidString)"
+        case .multipart(let parts, let boundaryId):
+            let boundary = "Boundary-\(boundaryId)"
             let multipartData = NSMutableData()
             for part in parts {
                 multipartData.appendString("--\(boundary)\r\n")

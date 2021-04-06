@@ -11,7 +11,7 @@ public struct Request {
     public enum Data {
         case data(Foundation.Data)
         case json(Encodable, encoder: JSONEncoder = Similar.defaultEncoder)
-        case multipart([DataPart])
+        case multipart([DataPart], boundaryId: String = UUID().uuidString)
     }
 
     public struct DataPart {
@@ -103,7 +103,7 @@ extension Request: CustomStringConvertible {
             } catch {
                 description.append("\nJSON Data: Unencodable data")
             }
-        case .multipart(let parts):
+        case .multipart(let parts, _):
             description.append("\nMultipart: [")
             parts.forEach { description.append("\n  \(String(describing: $0))") }
             description.append("\n]")
