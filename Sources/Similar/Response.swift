@@ -12,11 +12,17 @@ public struct Response {
     public let statusCode: Int
     public let headers: [String: String]
     
-    init(data: Data, response: HTTPURLResponse) {
+    public init(data: Data, response: HTTPURLResponse) {
         self.data = data
         self.statusCode = response.statusCode
         self.headers = response.allHeaderFields.reduce(into: [String: String]()) { (result, entry) in
             result[String(describing: entry.key)] = String(describing: entry.value)
         }
+    }
+    
+    public init(data: Data, statusCode: Int, headers: [String: String] = [:]) {
+        self.data = data
+        self.statusCode = statusCode
+        self.headers = headers
     }
 }
