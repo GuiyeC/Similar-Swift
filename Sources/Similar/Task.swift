@@ -14,12 +14,7 @@ public protocol Cancellable {
 public class Task<Output>: Sinkable, Catchable, Cancellable {
     public private(set) var isCancelled: Bool = false
     public var cancelBlock: (() -> Void)?
-    var alwaysBlock: (() -> Void)? {
-        didSet {
-            guard !isCancelled, output != nil || error != nil else { return }
-            alwaysBlock?()
-        }
-    }
+    var alwaysBlock: (() -> Void)?
     private(set) var output: Output? {
         didSet {
             guard oldValue == nil, error == nil, let output = output else {
@@ -28,14 +23,13 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
             guard !isCancelled else { return }
             completionBlock?(output)
             alwaysBlock?()
+            // Clear blocks to free up retained objects
+            completionBlock = nil
+            errorBlock = nil
+            alwaysBlock = nil
         }
     }
-    private(set) var completionBlock: ((Output) -> Void)? {
-        didSet {
-            guard !isCancelled, let output = output else { return }
-            completionBlock?(output)
-        }
-    }
+    private(set) var completionBlock: ((Output) -> Void)?
     private(set) var error: RequestError? {
         didSet {
             guard output == nil, oldValue == nil, let error = error else {
@@ -44,14 +38,13 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
             guard !isCancelled else { return }
             errorBlock?(error)
             alwaysBlock?()
+            // Clear blocks to free up retained objects
+            completionBlock = nil
+            errorBlock = nil
+            alwaysBlock = nil
         }
     }
-    private(set) var errorBlock: ((RequestError) -> Void)? {
-        didSet {
-            guard !isCancelled, let error = error else { return }
-            errorBlock?(error)
-        }
-    }
+    private(set) var errorBlock: ((RequestError) -> Void)?
     
     public init() {}
     
@@ -73,48 +66,62 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     
     @discardableResult
     public func sink(queue: DispatchQueue?, _ block: @escaping ((Output) -> Void)) -> Self {
-        let previousCompletionBlock = completionBlock
         var newBlock: ((Output) -> Void)
         if let queue = queue {
             newBlock = { output in queue.async { block(output) } }
         } else {
             newBlock = block
         }
-        completionBlock = {
-            previousCompletionBlock?($0)
-            newBlock($0)
+        if !isCancelled, let output = output {
+            newBlock(output)
+        } else {
+            let previousCompletionBlock = completionBlock
+            completionBlock = {
+                previousCompletionBlock?($0)
+                newBlock($0)
+            }
         }
         return self
     }
     
     @discardableResult
     public func `catch`(queue: DispatchQueue?, _ block: @escaping ((RequestError) -> Void)) -> Self {
-        let previousErrorBlock = errorBlock
         var newBlock: ((RequestError) -> Void)
         if let queue = queue {
             newBlock = { error in queue.async { block(error) } }
         } else {
             newBlock = block
         }
-        errorBlock = {
-            previousErrorBlock?($0)
-            newBlock($0)
+        
+        if !isCancelled, let error = error {
+            newBlock(error)
+        } else {
+            let previousErrorBlock = errorBlock
+            errorBlock = {
+                previousErrorBlock?($0)
+                newBlock($0)
+            }
         }
         return self
     }
     
     @discardableResult
     public func always(queue: DispatchQueue? = nil, _ block: @escaping (() -> Void)) -> Self {
-        let previousAlwaysBlock = alwaysBlock
         var newBlock: (() -> Void)
         if let queue = queue {
             newBlock = { queue.async { block() } }
         } else {
             newBlock = block
         }
-        alwaysBlock = {
-            previousAlwaysBlock?()
+        
+        if !isCancelled, output != nil || error != nil {
             newBlock()
+        } else {
+            let previousAlwaysBlock = alwaysBlock
+            alwaysBlock = {
+                previousAlwaysBlock?()
+                newBlock()
+            }
         }
         return self
     }
@@ -123,6 +130,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         guard !isCancelled else { return }
         isCancelled = true
         cancelBlock?()
+        cancelBlock = nil
     }
     
     func wrap<T>(sinkBlock: @escaping ((Output, Task<T>) -> Void),
