@@ -7,7 +7,7 @@
 
 import Foundation
 
-public protocol Dispatcher: class {
+public protocol Dispatcher: AnyObject {
     func execute(_ request: Request) -> Task<Response>
 }
 
