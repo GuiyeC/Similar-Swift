@@ -136,8 +136,8 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     func wrap<T>(sinkBlock: @escaping ((Output, Task<T>) -> Void),
                  catchBlock: @escaping ((RequestError, Task<T>) -> Void) = { $1.fail($0) }) -> Task<T> {
         let task = Task<T>()
-        sink { sinkBlock($0, task) }
-        `catch` { catchBlock($0, task) }
+        sink { [unowned task] in sinkBlock($0, task) }
+        `catch` { [unowned task] in catchBlock($0, task) }
         task.cancelBlock = cancel
         return task
     }
