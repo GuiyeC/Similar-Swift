@@ -27,6 +27,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
             completionBlock = nil
             errorBlock = nil
             alwaysBlock = nil
+            cancelBlock = nil
         }
     }
     private(set) var completionBlock: ((Output) -> Void)?
@@ -42,6 +43,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
             completionBlock = nil
             errorBlock = nil
             alwaysBlock = nil
+            cancelBlock = nil
         }
     }
     private(set) var errorBlock: ((RequestError) -> Void)?
@@ -138,7 +140,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         let task = Task<T>()
         sink { sinkBlock($0, task) }
         `catch` { catchBlock($0, task) }
-        task.cancelBlock = { [weak self] in self?.cancel() }
+        task.cancelBlock = cancel
         return task
     }
 }
