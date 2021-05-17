@@ -9,7 +9,7 @@ import Foundation
 
 open class Repository<Output>: Sinkable {
     let request: Request
-    weak var dispatcher: Dispatcher!
+    weak var dispatcher: Dispatcher?
     public var data: Output? {
         didSet {
             updatedDate = data == nil ? nil : Date()
@@ -32,6 +32,10 @@ open class Repository<Output>: Sinkable {
         self.transformBlock = transformBlock
     }
     
+    deinit {
+        updateTask?.cancel()
+    }
+    
     public func fetch(forceUpdate: Bool = false) -> Task<Output> {
         if forceUpdate {
             data = nil
@@ -52,10 +56,14 @@ open class Repository<Output>: Sinkable {
     
     func updateIfNecessary() {
         guard updateTask == nil else { return }
+        guard let dispatcher = dispatcher else {
+            Swift.print("Dispatcher not available, will not update")
+            return
+        }
         updateTask = dispatcher.execute(request)
-            .sink(handleResponse)
-            .catch(handleError)
-            .always { self.updateTask = nil }
+            .sink { [weak self] in self?.handleResponse($0) }
+            .catch { [weak self] in self?.handleError($0) }
+            .always { [weak self] in self?.updateTask = nil }
     }
     
     func handleResponse(_ response: Response) {
@@ -95,15 +103,11 @@ open class Repository<Output>: Sinkable {
 }
 
 public extension Repository where Output: Decodable {
-    convenience init(_ path: String,
-                     decoder: JSONDecoder = Similar.defaultDecoder,
-                     dispatcher: Dispatcher) {
+    convenience init(_ path: String, decoder: JSONDecoder = Similar.defaultDecoder, dispatcher: Dispatcher) {
         self.init(Request(path), decoder: decoder, dispatcher: dispatcher)
     }
     
-    convenience init(_ request: Request,
-                     decoder: JSONDecoder = Similar.defaultDecoder,
-                     dispatcher: Dispatcher) {
+    convenience init(_ request: Request, decoder: JSONDecoder = Similar.defaultDecoder, dispatcher: Dispatcher) {
         self.init(request, dispatcher: dispatcher) { data in
             return try decoder.decode(Output.self, from: data)
         }
@@ -112,6 +116,9 @@ public extension Repository where Output: Decodable {
 
 public extension Repository {
     func map<NewOutput>(_ mapBlock: @escaping (Output) -> NewOutput) -> Repository<NewOutput> {
+        guard let dispatcher = dispatcher else {
+            fatalError("Dispatcher not available, can't create repository")
+        }
         return Repository<NewOutput>(request, dispatcher: dispatcher) { [transformBlock] data -> NewOutput in
             return mapBlock(try transformBlock(data))
         }
