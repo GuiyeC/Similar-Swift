@@ -92,6 +92,24 @@ public extension Task {
     }
 }
 
+public protocol AnyOptional {
+    associatedtype Wrapped
+    var optional: Optional<Wrapped> { get }
+}
+
+extension Optional: AnyOptional {
+    public var optional: Optional<Wrapped> { self }
+}
+
+public extension Task where Output: AnyOptional {
+    func ignoreNil() -> Task<Output.Wrapped> {
+        wrap { output, task in
+            guard let output = output.optional else { return }
+            task.complete(output)
+        }
+    }
+}
+
 public extension Task {
     func eraseType() -> Task<Void> {
         return wrap(sinkBlock: { $1.complete(()) })
