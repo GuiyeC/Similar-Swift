@@ -68,6 +68,9 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     
     @discardableResult
     public func sink(queue: DispatchQueue?, _ block: @escaping ((Output) -> Void)) -> Self {
+        guard !isCancelled, error == nil else {
+            return self
+        }
         var newBlock: ((Output) -> Void)
         if let queue = queue {
             newBlock = { output in queue.async { block(output) } }
@@ -88,6 +91,9 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     
     @discardableResult
     public func `catch`(queue: DispatchQueue?, _ block: @escaping ((RequestError) -> Void)) -> Self {
+        guard !isCancelled, output == nil else {
+            return self
+        }
         var newBlock: ((RequestError) -> Void)
         if let queue = queue {
             newBlock = { error in queue.async { block(error) } }
@@ -95,7 +101,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
             newBlock = block
         }
         
-        if !isCancelled, let error = error {
+        if let error = error {
             newBlock(error)
         } else {
             let previousErrorBlock = errorBlock
@@ -109,6 +115,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     
     @discardableResult
     public func always(queue: DispatchQueue? = nil, _ block: @escaping (() -> Void)) -> Self {
+        guard !isCancelled else { return self }
         var newBlock: (() -> Void)
         if let queue = queue {
             newBlock = { queue.async { block() } }
@@ -116,7 +123,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
             newBlock = block
         }
         
-        if !isCancelled, output != nil || error != nil {
+        if output != nil || error != nil {
             newBlock()
         } else {
             let previousAlwaysBlock = alwaysBlock
@@ -140,7 +147,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         let task = Task<T>()
         sink { sinkBlock($0, task) }
         `catch` { catchBlock($0, task) }
-        task.cancelBlock = cancel
+        task.cancelBlock = cancelBlock
         return task
     }
 }
