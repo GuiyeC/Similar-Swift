@@ -9,6 +9,7 @@ import Foundation
 
 open class NetworkDispatcher: Dispatcher {
     let session: URLSession
+    lazy var progressTokens: [Int: NSKeyValueObservation] = [:]
     
     public init(session: URLSession = URLSession(configuration: .default)) {
         self.session = session
@@ -55,6 +56,12 @@ open class NetworkDispatcher: Dispatcher {
                 return
             }
             task.complete(Response(data: data, response: response))
+        }
+        if #available(iOS 11.0, macOS 10.13, *) {
+            progressTokens[dataTask.taskIdentifier] = dataTask.progress.observe(\.fractionCompleted) { [weak task] value, _ in
+                task?.progress = value.fractionCompleted
+            }
+            task.always { [weak self] in self?.progressTokens.removeValue(forKey: dataTask.taskIdentifier) }
         }
         task.cancelBlock = dataTask.cancel
         dataTask.resume()

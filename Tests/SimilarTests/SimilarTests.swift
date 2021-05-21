@@ -32,4 +32,21 @@ final class SimilarTests: XCTestCase {
             .always { XCTAssert(order == 3) }
         task.complete(())
     }
+    
+    let dispatcher = NetworkDispatcher()
+    func testProgress() {
+        let progressExpectation = expectation(description: "Task progress")
+        let sinkExpectation = expectation(description: "Task completed")
+        let request = Request("http://ipv4.download.thinkbroadband.com/20MB.zip")
+        dispatcher.execute(request)
+            .eraseType()
+            .progress { progress in
+                if progress == 1 {
+                    progressExpectation.fulfill()
+                }
+            }
+            .sink { sinkExpectation.fulfill() }
+        waitForExpectations(timeout: 10)
+        XCTAssert(dispatcher.progressTokens.isEmpty)
+    }
 }

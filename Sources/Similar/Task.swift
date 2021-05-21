@@ -11,30 +11,23 @@ public protocol Cancellable {
     func cancel()
 }
 
+public enum TaskState {
+    case alive
+    case completed
+    case failed
+    case cancelled
+}
+
 public class Task<Output>: Sinkable, Catchable, Cancellable {
-    public private(set) var isCancelled: Bool = false
-    public var cancelBlock: (() -> Void)?
+    public private(set) var state: TaskState = .alive
+    private(set) var output: Output?
+    private(set) var error: RequestError?
+    public var progress: Double? {
+        didSet { progress.map { progressBlock?($0) } }
+    }
     var blocks: [Any] = []
-    private(set) var output: Output? {
-        didSet {
-            guard oldValue == nil, error == nil, let output = output else {
-                preconditionFailure("Invalid output value")
-            }
-            guard !isCancelled else { return }
-            executeCompletion(with: output)
-            clearBlocks()
-        }
-    }
-    private(set) var error: RequestError? {
-        didSet {
-            guard output == nil, oldValue == nil, let error = error else {
-                preconditionFailure("Invalid error value")
-            }
-            guard !isCancelled else { return }
-            executeError(with: error)
-            clearBlocks()
-        }
-    }
+    var progressBlock: ((Double) -> Void)?
+    public var cancelBlock: (() -> Void)?
     
     public init() {}
     
@@ -47,11 +40,21 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     }
     
     public func complete(_ output: Output) {
+        guard state != .cancelled else { return }
+        guard state == .alive else { preconditionFailure("Invalid state: \(state)") }
         self.output = output
+        self.state = .completed
+        executeCompletion(with: output)
+        clearBlocks()
     }
     
     public func fail(_ error: RequestError) {
+        guard state != .cancelled else { return }
+        guard state == .alive else { preconditionFailure("Invalid state: \(state)") }
         self.error = error
+        self.state = .failed
+        executeError(with: error)
+        clearBlocks()
     }
     
     func executeCompletion(with output: Output) {
@@ -83,12 +86,35 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     func clearBlocks() {
         // Clear blocks to free up retained objects
         blocks.removeAll()
+        progressBlock = nil
         cancelBlock = nil
     }
     
     @discardableResult
+    public func progress(queue: DispatchQueue? = nil, _ block: @escaping ((Double) -> Void)) -> Self {
+        guard state == .alive else {
+            return self
+        }
+        var newBlock: ((Double) -> Void)
+        if let queue = queue {
+            newBlock = { output in queue.async { block(output) } }
+        } else {
+            newBlock = block
+        }
+        if let previousBlock = progressBlock {
+            progressBlock = {
+                previousBlock($0)
+                newBlock($0)
+            }
+        } else {
+            progressBlock = newBlock
+        }
+        return self
+    }
+    
+    @discardableResult
     public func sink(queue: DispatchQueue?, _ block: @escaping ((Output) -> Void)) -> Self {
-        guard !isCancelled, error == nil else {
+        guard state == .alive || state == .completed else {
             return self
         }
         var newBlock: ((Output) -> Void)
@@ -97,7 +123,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         } else {
             newBlock = block
         }
-        if !isCancelled, let output = output {
+        if let output = output {
             newBlock(output)
         } else {
             blocks.append(newBlock)
@@ -107,7 +133,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     
     @discardableResult
     public func `catch`(queue: DispatchQueue?, _ block: @escaping ((RequestError) -> Void)) -> Self {
-        guard !isCancelled, output == nil else {
+        guard state == .alive || state == .failed else {
             return self
         }
         var newBlock: ((RequestError) -> Void)
@@ -116,7 +142,6 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         } else {
             newBlock = block
         }
-        
         if let error = error {
             newBlock(error)
         } else {
@@ -127,14 +152,13 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     
     @discardableResult
     public func always(queue: DispatchQueue? = nil, _ block: @escaping (() -> Void)) -> Self {
-        guard !isCancelled else { return self }
+        guard state != .cancelled else { return self }
         var newBlock: (() -> Void)
         if let queue = queue {
             newBlock = { queue.async { block() } }
         } else {
             newBlock = block
         }
-        
         if output != nil || error != nil {
             newBlock()
         } else {
@@ -144,8 +168,11 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     }
     
     public func cancel() {
-        guard !isCancelled else { return }
-        isCancelled = true
+        guard state != .alive else {
+            Swift.print("Task could not be cancelled, task state: \(state)")
+            return
+        }
+        state = .cancelled
         cancelBlock?()
         clearBlocks()
     }
@@ -156,6 +183,8 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         sink { sinkBlock($0, task) }
         `catch` { catchBlock($0, task) }
         task.cancelBlock = cancelBlock
+        task.progressBlock = progressBlock
+        progressBlock = { task.progress = $0 }
         return task
     }
 }
