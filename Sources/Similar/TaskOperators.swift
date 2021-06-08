@@ -104,7 +104,10 @@ extension Optional: AnyOptional {
 public extension Task where Output: AnyOptional {
     func ignoreNil() -> Task<Output.Wrapped> {
         wrap { output, task in
-            guard let output = output.optional else { return }
+            guard let output = output.optional else {
+                task.ignore()
+                return
+            }
             task.complete(output)
         }
     }

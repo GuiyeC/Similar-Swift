@@ -5,8 +5,11 @@ final class SimilarTests: XCTestCase {
 
     static var allTests = [
         ("testClearingBlocksOnCompletedTasks", testClearingBlocksOnCompletedTasks),
+        ("testClearingBlocksOnIgnoreNil", testClearingBlocksOnIgnoreNil),
         ("testBlockOrder", testBlockOrder),
+        ("testBlockOrder", testProgress),
     ]
+    
     func testClearingBlocksOnCompletedTasks() {
         let task = Task<String>()
         task.complete("2")
@@ -14,6 +17,20 @@ final class SimilarTests: XCTestCase {
         
         XCTAssert(task.blocks.isEmpty)
         XCTAssertNil(task.cancelBlock)
+        XCTAssert(mapTask.blocks.isEmpty)
+        XCTAssertNil(mapTask.cancelBlock)
+    }
+    
+    func testClearingBlocksOnIgnoreNil() {
+        let task = Task<String?>()
+        let notNilTask = task.ignoreNil()
+        task.complete(nil)
+        let mapTask = notNilTask.map { _ in 2 }
+        
+        XCTAssert(task.blocks.isEmpty)
+        XCTAssertNil(task.cancelBlock)
+        XCTAssert(notNilTask.blocks.isEmpty)
+        XCTAssertNil(notNilTask.cancelBlock)
         XCTAssert(mapTask.blocks.isEmpty)
         XCTAssertNil(mapTask.cancelBlock)
     }

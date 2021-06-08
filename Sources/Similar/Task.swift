@@ -15,6 +15,7 @@ public enum TaskState {
     case alive
     case completed
     case failed
+    case ignored
     case cancelled
 }
 
@@ -45,6 +46,13 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         self.output = output
         self.state = .completed
         executeCompletion(with: output)
+        clearBlocks()
+    }
+    
+    func ignore() {
+        guard state != .cancelled else { return }
+        guard state == .alive else { preconditionFailure("Invalid state: \(state)") }
+        self.state = .ignored
         clearBlocks()
     }
     
