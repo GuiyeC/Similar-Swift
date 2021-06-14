@@ -176,7 +176,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     }
     
     public func cancel() {
-        guard state != .alive else {
+        guard state == .alive else {
             Swift.print("Task could not be cancelled, task state: \(state)")
             return
         }
