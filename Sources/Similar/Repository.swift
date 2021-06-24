@@ -109,6 +109,12 @@ open class Repository<Output>: Sinkable {
 }
 
 public extension Repository where Output: Decodable {
+    convenience init(taskBuilder: @escaping (() -> Task<Response>?), decoder: JSONDecoder = Similar.defaultDecoder) {
+        self.init(taskBuilder: taskBuilder) { data in
+            return try decoder.decode(Output.self, from: data)
+        }
+    }
+    
     convenience init(_ path: String, decoder: JSONDecoder = Similar.defaultDecoder, dispatcher: Dispatcher) {
         self.init(Request(path), decoder: decoder, dispatcher: dispatcher)
     }
