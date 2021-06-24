@@ -8,7 +8,7 @@
 import Foundation
 
 open class Repository<Output>: Sinkable {
-    let request: Request
+    let taskBuilder: (() -> Task<Response>?)
     weak var dispatcher: Dispatcher?
     public var data: Output? {
         didSet {
@@ -20,16 +20,22 @@ open class Repository<Output>: Sinkable {
     var currentTasks: [Task<Output>] = []
     private var transformBlock: ((Data) throws -> Output)
     
-    public init(_ path: String, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
-        self.request = Request(path)
-        self.dispatcher = dispatcher
+    public init(taskBuilder: @escaping (() -> Task<Response>?), transformBlock: @escaping ((Data) throws -> Output)) {
+        self.taskBuilder = taskBuilder
         self.transformBlock = transformBlock
     }
     
     public init(_ request: Request, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
-        self.request = request
+        self.taskBuilder = { [weak dispatcher] in
+            guard let dispatcher = dispatcher else { return nil }
+            return dispatcher.execute(request)
+        }
         self.dispatcher = dispatcher
         self.transformBlock = transformBlock
+    }
+    
+    public convenience init(_ path: String, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
+        self.init(Request(path), dispatcher: dispatcher, transformBlock: transformBlock)
     }
     
     deinit {
@@ -56,11 +62,11 @@ open class Repository<Output>: Sinkable {
     
     func updateIfNecessary() {
         guard updateTask == nil else { return }
-        guard let dispatcher = dispatcher else {
-            Swift.print("Dispatcher not available, will not update")
+        guard let task = taskBuilder() else {
+            Swift.print("Task not available, will not update")
             return
         }
-        updateTask = dispatcher.execute(request)
+        updateTask = task
             .sink { [weak self] in self?.handleResponse($0) }
             .catch { [weak self] in self?.handleError($0) }
             .always { [weak self] in self?.updateTask = nil }
@@ -116,10 +122,7 @@ public extension Repository where Output: Decodable {
 
 public extension Repository {
     func map<NewOutput>(_ mapBlock: @escaping (Output) -> NewOutput) -> Repository<NewOutput> {
-        guard let dispatcher = dispatcher else {
-            fatalError("Dispatcher not available, can't create repository")
-        }
-        return Repository<NewOutput>(request, dispatcher: dispatcher) { [transformBlock] data -> NewOutput in
+        return Repository<NewOutput>(taskBuilder: taskBuilder) { [transformBlock] data -> NewOutput in
             return mapBlock(try transformBlock(data))
         }
     }
