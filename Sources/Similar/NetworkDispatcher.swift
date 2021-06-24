@@ -57,7 +57,7 @@ open class NetworkDispatcher: Dispatcher {
             }
             task.complete(Response(data: data, response: response))
         }
-        if #available(iOS 11.0, macOS 10.13, *) {
+        if #available(iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0, *) {
             progressTokens[dataTask.taskIdentifier] = dataTask.progress.observe(\.fractionCompleted) { [weak task] value, _ in
                 task?.progress = value.fractionCompleted
             }
