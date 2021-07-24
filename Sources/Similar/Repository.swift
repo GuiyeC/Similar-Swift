@@ -9,7 +9,6 @@ import Foundation
 
 open class Repository<Output>: Sinkable {
     let taskBuilder: (() -> Task<Response>?)
-    weak var dispatcher: Dispatcher?
     public var data: Output? {
         didSet {
             updatedDate = data == nil ? nil : Date()
@@ -23,19 +22,6 @@ open class Repository<Output>: Sinkable {
     public init(taskBuilder: @escaping (() -> Task<Response>?), transformBlock: @escaping ((Data) throws -> Output)) {
         self.taskBuilder = taskBuilder
         self.transformBlock = transformBlock
-    }
-    
-    public init(_ request: Request, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
-        self.taskBuilder = { [weak dispatcher] in
-            guard let dispatcher = dispatcher else { return nil }
-            return dispatcher.execute(request)
-        }
-        self.dispatcher = dispatcher
-        self.transformBlock = transformBlock
-    }
-    
-    public convenience init(_ path: String, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
-        self.init(Request(path), dispatcher: dispatcher, transformBlock: transformBlock)
     }
     
     deinit {
@@ -53,7 +39,7 @@ open class Repository<Output>: Sinkable {
         // Save tasks
         let task = Task<Output>()
         currentTasks.append(task)
-        task.cancelBlock = { [weak self] in
+        task.cancelBlock = { [weak self, weak task] in
             self?.currentTasks.removeAll(where: { $0 === task })
         }
         updateIfNecessary()
@@ -127,6 +113,17 @@ public extension Repository where Output: Decodable {
 }
 
 public extension Repository {
+    convenience init(_ request: Request, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
+        self.init(taskBuilder: { [weak dispatcher] in
+            guard let dispatcher = dispatcher else { return nil }
+            return dispatcher.execute(request)
+        }, transformBlock: transformBlock)
+    }
+    
+    convenience init(_ path: String, dispatcher: Dispatcher, transformBlock: @escaping ((Data) throws -> Output)) {
+        self.init(Request(path), dispatcher: dispatcher, transformBlock: transformBlock)
+    }
+    
     func map<NewOutput>(_ mapBlock: @escaping (Output) -> NewOutput) -> Repository<NewOutput> {
         return Repository<NewOutput>(taskBuilder: taskBuilder) { [transformBlock] data -> NewOutput in
             return mapBlock(try transformBlock(data))
