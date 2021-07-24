@@ -64,11 +64,8 @@ public extension Task {
             let newTask = taskBlock(data)
                 .sink(task.complete)
                 .catch(task.fail)
-            let oldCancelBlock = newTask.cancelBlock
-            newTask.cancelBlock = {
-                oldCancelBlock?()
-                task.cancel()
-            }
+            task.cancelBlock = { [weak newTask] in newTask?.cancel() }
+            newTask.progressBlock = { task.progress = $0 }
         })
     }
 }
