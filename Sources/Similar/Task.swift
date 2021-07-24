@@ -190,7 +190,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         let task = Task<T>()
         sink { sinkBlock($0, task) }
         `catch` { catchBlock($0, task) }
-        task.cancelBlock = cancel
+        task.cancelBlock = { [weak self] in self?.cancel() }
         task.progressBlock = progressBlock
         progressBlock = { task.progress = $0 }
         return task
