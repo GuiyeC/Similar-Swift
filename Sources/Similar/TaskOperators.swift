@@ -25,8 +25,8 @@ public extension Task {
     @discardableResult
     func `catch`<Error: Decodable>(_: Error.Type, decoder: JSONDecoder = Similar.defaultDecoder, _ block: @escaping ((Int, Error) -> Void)) -> Task<Output> {
         return self.catch { error in
-            guard case .serverError(let code, let data) = error, let errorData = data,
-                let decodedError = try? decoder.decode(Error.self, from: errorData) else {
+            guard case .serverError(let code, let response) = error,
+                  let decodedError = try? decoder.decode(Error.self, from: response.data) else {
                 return
             }
             block(code, decodedError)

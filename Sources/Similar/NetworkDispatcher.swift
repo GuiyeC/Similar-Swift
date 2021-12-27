@@ -48,7 +48,7 @@ open class NetworkDispatcher: Dispatcher {
                 return
             }
             guard request.expectedCode ~= response.statusCode else {
-                task.fail(.serverError(code: response.statusCode, data))
+                task.fail(.serverError(code: response.statusCode, Response(data: data ?? Data(), response: response)))
                 return
             }
             guard let data = data else {

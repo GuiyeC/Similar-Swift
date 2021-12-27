@@ -10,6 +10,6 @@ import Foundation
 public enum RequestError: Error {
     case noData
     case localError(Error)
-    case serverError(code: Int, Data?)
+    case serverError(code: Int, Response)
     case decodingError(Error)
 }
