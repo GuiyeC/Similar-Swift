@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Request {
+public struct Request: @unchecked Sendable {
     public enum Data {
         case data(Foundation.Data)
         case json(Encodable, encoder: JSONEncoder = Similar.defaultEncoder)

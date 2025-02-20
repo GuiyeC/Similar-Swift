@@ -7,7 +7,7 @@
 
 import Foundation
 
-open class NetworkDispatcher: Dispatcher {
+open class NetworkDispatcher: Dispatcher, @unchecked Sendable {
     let session: URLSession
     lazy var progressTokens: [Int: NSKeyValueObservation] = [:]
     

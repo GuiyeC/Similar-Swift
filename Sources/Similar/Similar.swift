@@ -8,6 +8,6 @@
 import Foundation
 
 public enum Similar {
-    public static var defaultEncoder: JSONEncoder = JSONEncoder()
-    public static var defaultDecoder: JSONDecoder = JSONDecoder()
+    nonisolated(unsafe) public static var defaultEncoder: JSONEncoder = JSONEncoder()
+    nonisolated(unsafe) public static var defaultDecoder: JSONDecoder = JSONDecoder()
 }

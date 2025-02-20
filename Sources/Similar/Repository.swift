@@ -7,7 +7,7 @@
 
 import Foundation
 
-open class Repository<Output>: Sinkable {
+open class Repository<Output>: Sinkable, @unchecked Sendable {
     let taskBuilder: (() -> Task<Response>?)
     public var data: Output? {
         didSet {
@@ -81,7 +81,7 @@ open class Repository<Output>: Sinkable {
         let previousTransformBlock = transformBlock
         var newBlock: ((Output) -> Void)
         if let queue = queue {
-            newBlock = { output in queue.async { block(output) } }
+            newBlock = { output in queue.sync { block(output) } }
         } else {
             newBlock = block
         }

@@ -11,7 +11,7 @@ public protocol Cancellable {
     func cancel()
 }
 
-public enum TaskState {
+public enum TaskState: Sendable {
     case alive
     case completed
     case failed
@@ -19,7 +19,7 @@ public enum TaskState {
     case cancelled
 }
 
-public class Task<Output>: Sinkable, Catchable, Cancellable {
+public final class Task<Output>: Sinkable, Catchable, Cancellable, @unchecked Sendable {
     public private(set) var state: TaskState = .alive
     private(set) var output: Output?
     private(set) var error: RequestError?
@@ -99,7 +99,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     }
     
     @discardableResult
-    public func progress(queue: DispatchQueue? = nil, _ block: @escaping ((Double) -> Void)) -> Self {
+    public func progress(queue: DispatchQueue? = nil, _ block: @escaping (@Sendable (Double) -> Void)) -> Self {
         guard state == .alive else {
             return self
         }
@@ -127,7 +127,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         }
         var newBlock: ((Output) -> Void)
         if let queue = queue {
-            newBlock = { output in queue.async { block(output) } }
+            newBlock = { output in queue.sync { block(output) } }
         } else {
             newBlock = block
         }
@@ -146,7 +146,7 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
         }
         var newBlock: ((RequestError) -> Void)
         if let queue = queue {
-            newBlock = { error in queue.async { block(error) } }
+            newBlock = { error in queue.sync { block(error) } }
         } else {
             newBlock = block
         }
@@ -159,11 +159,11 @@ public class Task<Output>: Sinkable, Catchable, Cancellable {
     }
     
     @discardableResult
-    public func always(queue: DispatchQueue? = nil, _ block: @escaping (() -> Void)) -> Self {
+    public func always(queue: DispatchQueue? = nil, _ block: @escaping (@Sendable () -> Void)) -> Self {
         guard state != .cancelled else { return self }
         var newBlock: (() -> Void)
         if let queue = queue {
-            newBlock = { queue.async { block() } }
+            newBlock = { queue.sync { block() } }
         } else {
             newBlock = block
         }
