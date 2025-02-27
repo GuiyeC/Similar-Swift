@@ -127,7 +127,7 @@ public final class Task<Output>: Sinkable, Catchable, Cancellable, @unchecked Se
         }
         var newBlock: ((Output) -> Void)
         if let queue = queue {
-            newBlock = { output in queue.sync { block(output) } }
+            newBlock = { output in queue.async { block(output) } }
         } else {
             newBlock = block
         }
@@ -146,7 +146,7 @@ public final class Task<Output>: Sinkable, Catchable, Cancellable, @unchecked Se
         }
         var newBlock: ((RequestError) -> Void)
         if let queue = queue {
-            newBlock = { error in queue.sync { block(error) } }
+            newBlock = { error in queue.async { block(error) } }
         } else {
             newBlock = block
         }
@@ -163,7 +163,7 @@ public final class Task<Output>: Sinkable, Catchable, Cancellable, @unchecked Se
         guard state != .cancelled else { return self }
         var newBlock: (() -> Void)
         if let queue = queue {
-            newBlock = { queue.sync { block() } }
+            newBlock = { queue.async { block() } }
         } else {
             newBlock = block
         }

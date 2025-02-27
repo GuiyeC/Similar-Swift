@@ -81,7 +81,7 @@ open class Repository<Output>: Sinkable, @unchecked Sendable {
         let previousTransformBlock = transformBlock
         var newBlock: ((Output) -> Void)
         if let queue = queue {
-            newBlock = { output in queue.sync { block(output) } }
+            newBlock = { output in queue.async { block(output) } }
         } else {
             newBlock = block
         }
