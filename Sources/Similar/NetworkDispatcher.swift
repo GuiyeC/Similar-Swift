@@ -51,11 +51,7 @@ open class NetworkDispatcher: Dispatcher, @unchecked Sendable {
                 task.fail(.serverError(code: response.statusCode, Response(data: data ?? Data(), response: response)))
                 return
             }
-            guard let data = data else {
-                task.fail(.noData)
-                return
-            }
-            task.complete(Response(data: data, response: response))
+            task.complete(Response(data: data ?? Data(), response: response))
         }
         if #available(iOS 11.0, watchOS 4.0, macOS 10.13, tvOS 11.0, *) {
             progressTokens[dataTask.taskIdentifier] = dataTask.progress.observe(\.fractionCompleted) { [weak task] value, _ in
