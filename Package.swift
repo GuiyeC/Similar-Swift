@@ -4,6 +4,9 @@ import PackageDescription
 
 let package = Package(
     name: "Similar",
+    platforms: [
+        .iOS(.v15), .macOS(.v11), .tvOS(.v15), .watchOS(.v9), .visionOS(.v1)
+    ],
     products: [
         .library(name: "Similar", targets: ["Similar"])
     ],
