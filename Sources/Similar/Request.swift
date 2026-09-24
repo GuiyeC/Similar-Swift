@@ -11,7 +11,7 @@ public struct Request: @unchecked Sendable {
     public enum Data {
         case data(Foundation.Data)
         case json(Encodable, encoder: JSONEncoder = Similar.defaultEncoder)
-        case multipart([DataPart], boundaryId: String = UUID().uuidString)
+        case multipart([DataPart], boundaryID: String = UUID().uuidString)
     }
 
     public struct DataPart {
